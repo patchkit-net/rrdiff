@@ -5,6 +5,11 @@
 
 VALUE RRDiff = Qnil;
 
+void rrdiff_raise_exception(int result)
+{
+    rb_raise(rb_eRuntimeError, "rdiff operation has failed with code %d", result);
+}
+
 static VALUE rrdiff_signature(VALUE mod, VALUE old_file, VALUE sig_file)
 {
     FILE *basis, *signature;
@@ -19,6 +24,11 @@ static VALUE rrdiff_signature(VALUE mod, VALUE old_file, VALUE sig_file)
 
     fclose(basis);
     fclose(signature);
+
+    if(result != RS_DONE)
+    {
+        rrdiff_raise_exception(result);
+    }
 
     return Qnil;
 }
@@ -36,10 +46,16 @@ static VALUE rrdiff_delta(VALUE mod, VALUE new_file, VALUE sig_file, VALUE delta
     deltafile = fopen(StringValuePtr(delta_file), "wb");
 
     if((result = rs_loadsig_file(sigfile, &sig, &stats)) != RS_DONE)
+    {
+        rrdiff_raise_exception(result);
         return Qnil;
+    }
 
     if ((result = rs_build_hash_table(sig)) != RS_DONE)
+    {
+        rrdiff_raise_exception(result);
         return Qnil;
+    }
 
     result = rs_delta_file(sig, newfile, deltafile, &stats);
 
@@ -48,6 +64,11 @@ static VALUE rrdiff_delta(VALUE mod, VALUE new_file, VALUE sig_file, VALUE delta
     fclose(newfile);
     fclose(sigfile);
     fclose(deltafile);
+
+    if(result != RS_DONE)
+    {
+        rrdiff_raise_exception(result);
+    }
 
     return Qnil;
 }
@@ -68,6 +89,11 @@ static VALUE rrdiff_patch(VALUE mod, VALUE old_file, VALUE delta_file, VALUE pat
     fclose(newfile);
     fclose(deltafile);
     fclose(basisfile);
+
+    if(result != RS_DONE)
+    {
+        rrdiff_raise_exception(result);
+    }
 
     return Qnil;
 }
